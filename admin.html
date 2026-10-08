@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>BIRUXY MOVIE - ADMIN</title>
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+
+</head>
+
+
+<body>
+
+
+  <div
+    id="loginPage"
+    class="login-page"
+  >
+
+    <div class="login-box">
+
+      <div class="logo">
+        BIRUXY
+      </div>
+
+      <div class="logo-sub">
+        MOVIE ADMIN
+      </div>
+
+
+      <h1>
+        Admin Login
+      </h1>
+
+
+      <input
+        type="text"
+        id="adminUsername"
+        placeholder="Username"
+        autocomplete="off"
+      >
+
+
+      <input
+        type="password"
+        id="adminPassword"
+        placeholder="Password"
+      >
+
+
+      <button
+        onclick="adminLogin()"
+      >
+        LOGIN
+      </button>
+
+
+      <p
+        id="loginMessage"
+      ></p>
+
+    </div>
+
+  </div>
+
+
+
+  <div
+    id="adminPage"
+    style="display:none;"
+  >
+
+    <nav class="navbar">
+
+      <div>
+
+        <div class="nav-logo">
+          BIRUXY
+        </div>
+
+        <div class="nav-sub">
+          MOVIE ADMIN
+        </div>
+
+      </div>
+
+
+      <button
+        onclick="adminLogout()"
+        class="logout-btn"
+      >
+        LOGOUT
+      </button>
+
+    </nav>
+
+
+    <main class="admin-page">
+
+      <h1>
+        🎬 Admin Dashboard
+      </h1>
+
+
+      <section class="admin-card">
+
+        <h2>
+          Add Movie
+        </h2>
+
+
+        <label>
+          Movie Title
+        </label>
+
+        <input
+          type="text"
+          id="movieTitle"
+          placeholder="Movie title"
+        >
+
+
+        <label>
+          Poster
+        </label>
+
+        <input
+          type="file"
+          id="posterFile"
+          accept=".jpg,.jpeg,.png,.webp,.gif,image/*"
+        >
+
+
+        <div
+          id="posterPreview"
+          style="display:none;"
+        >
+
+          <img
+            id="posterPreviewImage"
+            alt="Poster preview"
+          >
+
+        </div>
+
+
+        <label>
+          Video
+        </label>
+
+        <input
+          type="file"
+          id="videoFile"
+          accept=".mp4,.webm,.ogg,.ogv,.mkv,video/*"
+        >
+
+
+        <p id="videoInfo"></p>
+
+
+        <label>
+          Description
+        </label>
+
+        <textarea
+          id="movieDescription"
+          placeholder="Movie description"
+          rows="5"
+        ></textarea>
+
+
+        <label>
+          Category
+        </label>
+
+        <select
+          id="movieCategory"
+        >
+
+          <option value="movies">
+            MOVIES - Public
+          </option>
+
+          <option value="private">
+            PRIVATE - Hidden
+          </option>
+
+        </select>
+
+
+        <button
+          onclick="addMovie()"
+          id="addMovieButton"
+        >
+          ADD MOVIE
+        </button>
+
+
+        <p id="addMessage"></p>
+
+      </section>
+
+
+      <section class="admin-card">
+
+        <div class="library-header">
+
+          <h2>
+            Movie Library
+          </h2>
+
+          <button
+            onclick="loadMovies()"
+          >
+            REFRESH
+          </button>
+
+        </div>
+
+
+        <div id="adminMovieList">
+          Loading...
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+
+
+  <script>
+
+    const API_URL =
+      "https://biruxy-movie.onrender.com";
+
+
+    let adminToken =
+      localStorage.getItem(
+        "biruxy_admin_token"
+      );
+
+
+    const loginPage =
+      document.getElementById(
+        "loginPage"
+      );
+
+    const adminPage =
+      document.getElementById(
+        "adminPage"
+      );
+
+    const adminUsername =
+      document.getElementById(
+        "adminUsername"
+      );
+
+    const adminPassword =
+      document.getElementById(
+        "adminPassword"
+      );
+
+    const loginMessage =
+      document.getElementById(
+        "loginMessage"
+      );
+
+    const addMessage =
+      document.getElementById(
+        "addMessage"
+      );
+
+    const posterFile =
+      document.getElementById(
+        "posterFile"
+      );
+
+    const videoFile =
+      document.getElementById(
+        "videoFile"
+      );
+
+    const posterPreview =
+      document.getElementById(
+        "posterPreview"
+      );
+
+    const posterPreviewImage =
+      document.getElementById(
+        "posterPreviewImage"
+      );
+
+    const videoInfo =
+      document.getElementById(
+        "videoInfo"
+      );
+
+
+    if (adminToken) {
+      showAdmin();
+    }
+
+
+    async function adminLogin() {
+
+      const username =
+        adminUsername.value.trim();
+
+      const password =
+        adminPassword.value;
+
+
+      if (!username || !password) {
+
+        loginMessage.textContent =
+          "Enter username and password.";
+
+        loginMessage.className =
+          "error";
+
+        return;
+
+      }
+
+
+      loginMessage.textContent =
+        "Checking...";
+
+
+      try {
+
+        const response =
+          await fetch(
+            API_URL +
+            "/api/admin/login",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+                  username,
+                  password
+                })
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.token
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Login failed."
+          );
+
+        }
+
+
+        adminToken =
+          data.token;
+
+
+        localStorage.setItem(
+          "biruxy_admin_token",
+          adminToken
+        );
+
+
+        showAdmin();
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        loginMessage.textContent =
+          error.message ||
+          "Login failed.";
+
+        loginMessage.className =
+          "error";
+
+      }
+
+    }
+
+
+    function showAdmin() {
+
+      loginPage.style.display =
+        "none";
+
+      adminPage.style.display =
+        "block";
+
+      loadMovies();
+
+    }
+
+
+    function adminLogout() {
+
+      localStorage.removeItem(
+        "biruxy_admin_token"
+      );
+
+      adminToken = null;
+
+      location.reload();
+
+    }
+
+
+    posterFile.addEventListener(
+      "change",
+      function() {
+
+        const file =
+          this.files[0];
+
+
+        if (!file) {
+
+          posterPreview.style.display =
+            "none";
+
+          return;
+
+        }
+
+
+        const url =
+          URL.createObjectURL(file);
+
+
+        posterPreviewImage.src =
+          url;
+
+
+        posterPreview.style.display =
+          "block";
+
+      }
+    );
+
+
+    videoFile.addEventListener(
+      "change",
+      function() {
+
+        const file =
+          this.files[0];
+
+
+        if (!file) {
+
+          videoInfo.textContent =
+            "";
+
+          return;
+
+        }
+
+
+        videoInfo.textContent =
+          file.name +
+          " • " +
+          formatBytes(file.size);
+
+      }
+    );
+
+
+    async function addMovie() {
+
+      const title =
+        document
+          .getElementById("movieTitle")
+          .value
+          .trim();
+
+
+      const description =
+        document
+          .getElementById("movieDescription")
+          .value
+          .trim();
+
+
+      const category =
+        document
+          .getElementById("movieCategory")
+          .value;
+
+
+      const poster =
+        posterFile.files[0];
+
+
+      const video =
+        videoFile.files[0];
+
+
+      if (!title) {
+
+        addMessage.textContent =
+          "Movie title is required.";
+
+        addMessage.className =
+          "error";
+
+        return;
+
+      }
+
+
+      if (!video) {
+
+        addMessage.textContent =
+          "Please select a video.";
+
+        addMessage.className =
+          "error";
+
+        return;
+
+      }
+
+
+      const formData =
+        new FormData();
+
+
+      formData.append(
+        "title",
+        title
+      );
+
+      formData.append(
+        "description",
+        description
+      );
+
+      formData.append(
+        "category",
+        category
+      );
+
+
+      if (poster) {
+
+        formData.append(
+          "poster",
+          poster
+        );
+
+      }
+
+
+      formData.append(
+        "video",
+        video
+      );
+
+
+      addMessage.textContent =
+        "Uploading... Please wait.";
+
+
+      const button =
+        document.getElementById(
+          "addMovieButton"
+        );
+
+
+      button.disabled = true;
+
+
+      try {
+
+        const response =
+          await fetch(
+            API_URL +
+            "/api/movies",
+            {
+              method: "POST",
+
+              headers: {
+                Authorization:
+                  "Bearer " +
+                  adminToken
+              },
+
+              body: formData
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          response.status === 401
+        ) {
+
+          adminLogout();
+          return;
+
+        }
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.error ||
+            "Upload failed."
+          );
+
+        }
+
+
+        addMessage.textContent =
+          "Movie added successfully!";
+
+        addMessage.className =
+          "success";
+
+
+        clearForm();
+
+        await loadMovies();
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        addMessage.textContent =
+          error.message ||
+          "Upload failed.";
+
+        addMessage.className =
+          "error";
+
+      } finally {
+
+        button.disabled = false;
+
+      }
+
+    }
+
+
+    async function loadMovies() {
+
+      const list =
+        document.getElementById(
+          "adminMovieList"
+        );
+
+
+      list.innerHTML =
+        "Loading...";
+
+
+      try {
+
+        const response =
+          await fetch(
+            API_URL +
+            "/api/movies"
+          );
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            "Failed to load movies."
+          );
+
+        }
+
+
+        const movies =
+          await response.json();
+
+
+        if (
+          !Array.isArray(movies) ||
+          !movies.length
+        ) {
+
+          list.innerHTML =
+            "<p>No movies added yet.</p>";
+
+          return;
+
+        }
+
+
+        list.innerHTML = "";
+
+
+        movies.forEach(movie => {
+
+          const item =
+            document.createElement(
+              "div"
+            );
+
+
+          item.className =
+            "admin-movie-item";
+
+
+          const title =
+            escapeHtml(
+              movie.title ||
+              "Untitled"
+            );
+
+
+          const category =
+            escapeHtml(
+              String(
+                movie.category ||
+                "movies"
+              ).toUpperCase()
+            );
+
+
+          item.innerHTML = `
+
+            <div>
+
+              <strong>
+                ${title}
+              </strong>
+
+              <span>
+                ${category}
+              </span>
+
+            </div>
+
+            <button>
+              DELETE
+            </button>
+
+          `;
+
+
+          item
+            .querySelector("button")
+            .addEventListener(
+              "click",
+              () =>
+                deleteMovie(movie.id)
+            );
+
+
+          list.appendChild(item);
+
+        });
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        list.innerHTML =
+          `<p class="error">
+            ${escapeHtml(
+              error.message
+            )}
+          </p>`;
+
+      }
+
+    }
+
+
+    async function deleteMovie(
+      movieId
+    ) {
+
+      if (
+        !confirm(
+          "Delete this movie?"
+        )
+      ) {
+        return;
+      }
+
+
+      try {
+
+        const response =
+          await fetch(
+            API_URL +
+            "/api/movies/" +
+            encodeURIComponent(movieId),
+            {
+              method: "DELETE",
+
+              headers: {
+                Authorization:
+                  "Bearer " +
+                  adminToken
+              }
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          response.status === 401
+        ) {
+
+          adminLogout();
+          return;
+
+        }
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            data.error ||
+            "Delete failed."
+          );
+
+        }
+
+
+        await loadMovies();
+
+
+      } catch (error) {
+
+        alert(
+          error.message ||
+          "Delete failed."
+        );
+
+      }
+
+    }
+
+
+    function clearForm() {
+
+      document.getElementById(
+        "movieTitle"
+      ).value = "";
+
+
+      document.getElementById(
+        "movieDescription"
+      ).value = "";
+
+
+      document.getElementById(
+        "movieCategory"
+      ).value = "movies";
+
+
+      posterFile.value = "";
+      videoFile.value = "";
+
+
+      posterPreview.style.display =
+        "none";
+
+
+      videoInfo.textContent = "";
+
+    }
+
+
+    function formatBytes(bytes) {
+
+      if (!bytes) {
+        return "0 Bytes";
+      }
+
+
+      const units = [
+        "Bytes",
+        "KB",
+        "MB",
+        "GB",
+        "TB"
+      ];
+
+
+      const index =
+        Math.floor(
+          Math.log(bytes) /
+          Math.log(1024)
+        );
+
+
+      return (
+        parseFloat(
+          (
+            bytes /
+            Math.pow(
+              1024,
+              index
+            )
+          ).toFixed(2)
+        ) +
+        " " +
+        units[index]
+      );
+
+    }
+
+
+    function escapeHtml(value) {
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    }
+
+  </script>
+
+</body>
+</html>

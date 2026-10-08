@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>BIRUXY MOVIE - Watch</title>
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+
+</head>
+
+
+<body>
+
+  <nav class="navbar">
+
+    <div>
+
+      <div class="nav-logo">
+        BIRUXY
+      </div>
+
+      <div class="nav-sub">
+        MOVIE
+      </div>
+
+    </div>
+
+
+    <div class="nav-right">
+
+      <button
+        onclick="backToMovies()"
+        class="back-btn"
+      >
+        ← MOVIES
+      </button>
+
+      <button
+        onclick="logout()"
+        class="logout-btn"
+      >
+        LOGOUT
+      </button>
+
+    </div>
+
+  </nav>
+
+
+  <main class="watch-page">
+
+    <div
+      id="loading"
+      class="status"
+    >
+      Loading movie...
+    </div>
+
+
+    <div
+      id="error"
+      class="status error"
+    ></div>
+
+
+    <section
+      id="watchContent"
+      style="display:none;"
+    >
+
+      <h1
+        id="movieTitle"
+        class="watch-title"
+      ></h1>
+
+
+      <div
+        id="videoContainer"
+        class="video-container"
+      >
+
+        <video
+          id="videoPlayer"
+          controls
+          playsinline
+          preload="metadata"
+        ></video>
+
+
+        <button
+          id="fullscreenBtn"
+          class="fullscreen-btn"
+        >
+          ⛶ FULLSCREEN
+        </button>
+
+
+        <button
+          id="rotateBtn"
+          class="rotate-btn"
+        >
+          ↻ ROTATE
+        </button>
+
+      </div>
+
+
+      <div class="watch-description">
+
+        <h2>
+          Description
+        </h2>
+
+        <p id="movieDescription"></p>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <script>
+
+    const API_URL =
+      "https://biruxy-movie.onrender.com";
+
+
+    const username =
+      localStorage.getItem(
+        "biruxy_username"
+      );
+
+
+    if (!username) {
+      window.location.href =
+        "index.html";
+    }
+
+
+    const loading =
+      document.getElementById(
+        "loading"
+      );
+
+    const errorBox =
+      document.getElementById(
+        "error"
+      );
+
+    const watchContent =
+      document.getElementById(
+        "watchContent"
+      );
+
+    const movieTitle =
+      document.getElementById(
+        "movieTitle"
+      );
+
+    const movieDescription =
+      document.getElementById(
+        "movieDescription"
+      );
+
+    const videoPlayer =
+      document.getElementById(
+        "videoPlayer"
+      );
+
+    const videoContainer =
+      document.getElementById(
+        "videoContainer"
+      );
+
+    const fullscreenBtn =
+      document.getElementById(
+        "fullscreenBtn"
+      );
+
+    const rotateBtn =
+      document.getElementById(
+        "rotateBtn"
+      );
+
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+
+    const movieId =
+      params.get("id");
+
+
+    if (!movieId) {
+
+      showError(
+        "Movie ID missing."
+      );
+
+    } else {
+
+      loadMovie();
+
+    }
+
+
+    async function loadMovie() {
+
+      try {
+
+        const response =
+          await fetch(
+            API_URL +
+            "/api/movies"
+          );
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            "Unable to load movies."
+          );
+
+        }
+
+
+        const movies =
+          await response.json();
+
+
+        const movie =
+          movies.find(
+            item =>
+              String(item.id) ===
+              String(movieId)
+          );
+
+
+        if (!movie) {
+
+          throw new Error(
+            "Movie not found."
+          );
+
+        }
+
+
+        if (
+          String(
+            movie.category || ""
+          ).toLowerCase() ===
+          "private"
+        ) {
+
+          throw new Error(
+            "This movie is private."
+          );
+
+        }
+
+
+        movieTitle.textContent =
+          movie.title ||
+          "Untitled Movie";
+
+
+        movieDescription.textContent =
+          movie.description ||
+          "No description available.";
+
+
+        if (!movie.video) {
+
+          throw new Error(
+            "Video URL not available."
+          );
+
+        }
+
+
+        videoPlayer.src =
+          movie.video;
+
+        videoPlayer.load();
+
+
+        watchContent.style.display =
+          "block";
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        showError(
+          error.message ||
+          "Unable to load movie."
+        );
+
+      } finally {
+
+        loading.style.display =
+          "none";
+
+      }
+
+    }
+
+
+    fullscreenBtn.addEventListener(
+      "click",
+      async function() {
+
+        try {
+
+          if (
+            document.fullscreenElement
+          ) {
+
+            await document.exitFullscreen();
+
+          } else {
+
+            await videoContainer.requestFullscreen();
+
+          }
+
+        } catch (error) {
+
+          console.error(error);
+
+          alert(
+            "Fullscreen is not supported here."
+          );
+
+        }
+
+      }
+    );
+
+
+    rotateBtn.addEventListener(
+      "click",
+      async function() {
+
+        try {
+
+          if (
+            screen.orientation &&
+            screen.orientation.lock
+          ) {
+
+            await screen.orientation.lock(
+              "landscape"
+            );
+
+          } else {
+
+            alert(
+              "Please rotate your phone manually."
+            );
+
+          }
+
+        } catch (error) {
+
+          alert(
+            "Please open fullscreen and rotate your phone."
+          );
+
+        }
+
+      }
+    );
+
+
+    function backToMovies() {
+
+      window.location.href =
+        "movies.html";
+
+    }
+
+
+    function logout() {
+
+      localStorage.removeItem(
+        "biruxy_username"
+      );
+
+      window.location.href =
+        "index.html";
+
+    }
+
+
+    function showError(message) {
+
+      loading.style.display =
+        "none";
+
+      watchContent.style.display =
+        "none";
+
+      errorBox.textContent =
+        message;
+
+    }
+
+  </script>
+
+</body>
+</html>

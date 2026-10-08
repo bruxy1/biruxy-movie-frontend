@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BIRUXY MOVIE - Movies</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <div>
+      <div class="nav-logo">BIRUXY</div>
+      <div class="nav-sub">MOVIE</div>
+    </div>
+
+    <div class="nav-right">
+      <button onclick="logout()" class="logout-btn">LOGOUT</button>
+    </div>
+  </nav>
+
+  <main class="movies-page">
+
+    <section class="movies-header">
+      <h1>🎬 MOVIES</h1>
+
+      <input
+        type="text"
+        id="search"
+        placeholder="🔍 Search movie..."
+        autocomplete="off"
+      >
+    </section>
+
+    <section id="loading" class="status">
+      Loading movies...
+    </section>
+
+    <section id="error" class="status error"></section>
+
+    <section id="movieGrid" class="movie-grid"></section>
+
+    <section
+      id="empty"
+      class="status"
+      style="display:none;"
+    >
+      No movies found.
+    </section>
+
+  </main>
+
+  <script>
+
+    const API_URL =
+      "https://biruxy-movie.onrender.com";
+
+
+    const username =
+      localStorage.getItem("biruxy_username");
+
+
+    if (!username) {
+      window.location.href = "index.html";
+    }
+
+
+    const movieGrid =
+      document.getElementById("movieGrid");
+
+    const loading =
+      document.getElementById("loading");
+
+    const errorBox =
+      document.getElementById("error");
+
+    const empty =
+      document.getElementById("empty");
+
+    const search =
+      document.getElementById("search");
+
+
+    let allMovies = [];
+
+
+    async function loadMovies() {
+
+      loading.style.display = "block";
+      errorBox.textContent = "";
+
+      try {
+
+        const response =
+          await fetch(
+            API_URL + "/api/movies"
+          );
+
+        if (!response.ok) {
+          throw new Error(
+            "Failed to load movies."
+          );
+        }
+
+        const movies =
+          await response.json();
+
+
+        allMovies =
+          Array.isArray(movies)
+            ? movies.filter(movie =>
+                String(
+                  movie.category || ""
+                ).toLowerCase() !== "private"
+              )
+            : [];
+
+
+        renderMovies(allMovies);
+
+      } catch (error) {
+
+        console.error(error);
+
+        errorBox.textContent =
+          "Unable to load movies.";
+
+      } finally {
+
+        loading.style.display = "none";
+
+      }
+    }
+
+
+    function renderMovies(movies) {
+
+      movieGrid.innerHTML = "";
+      empty.style.display = "none";
+
+
+      if (!movies.length) {
+        empty.style.display = "block";
+        return;
+      }
+
+
+      movies.forEach(movie => {
+
+        const card =
+          document.createElement("div");
+
+        card.className =
+          "movie-card";
+
+
+        card.innerHTML = `
+
+          <div class="movie-poster">
+
+            ${
+              movie.poster
+                ? `
+                  <img
+                    src="${escapeHtml(movie.poster)}"
+                    alt="${escapeHtml(
+                      movie.title || "Movie"
+                    )}"
+                    loading="lazy"
+                  >
+                `
+                : `
+                  <div class="no-poster">
+                    🎬
+                  </div>
+                `
+            }
+
+          </div>
+
+          <div class="movie-info">
+
+            <h2>
+              ${escapeHtml(
+                movie.title || "Untitled Movie"
+              )}
+            </h2>
+
+            <p>
+              ${escapeHtml(
+                movie.description || "Watch now"
+              )}
+            </p>
+
+          </div>
+        `;
+
+
+        card.addEventListener(
+          "click",
+          () => {
+
+            if (!movie.id) {
+              alert("Movie ID missing.");
+              return;
+            }
+
+            window.location.href =
+              "watch.html?id=" +
+              encodeURIComponent(movie.id);
+
+          }
+        );
+
+
+        movieGrid.appendChild(card);
+
+      });
+
+    }
+
+
+    search.addEventListener(
+      "input",
+      function() {
+
+        const query =
+          this.value
+            .trim()
+            .toLowerCase();
+
+
+        if (!query) {
+          renderMovies(allMovies);
+          return;
+        }
+
+
+        const filtered =
+          allMovies.filter(movie =>
+            String(movie.title || "")
+              .toLowerCase()
+              .includes(query)
+          );
+
+
+        renderMovies(filtered);
+
+      }
+    );
+
+
+    function escapeHtml(value) {
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    }
+
+
+    function logout() {
+
+      localStorage.removeItem(
+        "biruxy_username"
+      );
+
+      window.location.href =
+        "index.html";
+
+    }
+
+
+    loadMovies();
+
+  </script>
+
+</body>
+</html>
